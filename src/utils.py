@@ -27,19 +27,23 @@ def normalize_image(image):
     return cv2.normalize(image.astype(np.float32), None, 0.0, 1.0, cv2.NORM_MINMAX)
 
 def prepare_image_data(file_dir, focal_length=None, data_dir='data'):
-    image_datas = {'suffix': '_' + file_dir}
+    image_datas = {'suffix': file_dir, 'sequences': []}
     if VERBOSE and focal_length is not None: print ("Do warping after loading images.")
-    
-    for img_pos in ['left', 'reference', 'right']:
-        image_datas[img_pos] = {}
-        path = os.path.join(data_dir, file_dir, img_pos + '_image.jpg')
+
+    idx = 0
+    path = os.path.join(data_dir, file_dir, '1.jpg')
+    while os.path.isfile(path):
+        image_datas['sequences'].append({})
         img = cv2.imread(path)
         if focal_length is not None:
             img, mask = warpSpherical(img, focal_length)
-            image_datas[img_pos]['mask'] = mask
+            image_datas['sequences'][idx]['mask'] = mask
         norm_img = normalize_image(img)
-        image_datas[img_pos]['color'] = norm_img[:, :, ::-1]
-        image_datas[img_pos]['gray'] = cv2.cvtColor(norm_img, cv2.COLOR_RGB2GRAY)
+        image_datas['sequences'][idx]['color'] = norm_img[:, :, ::-1]
+        image_datas['sequences'][idx]['gray'] = cv2.cvtColor(norm_img, cv2.COLOR_RGB2GRAY)
+
+        idx += 1
+        path = os.path.join(data_dir, file_dir, str(idx + 1) + '.jpg')
 
     return image_datas
 

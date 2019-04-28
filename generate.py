@@ -9,12 +9,21 @@ from src.config import *
 
 
 def parse_argument():
-	parser = argparse.ArgumentParser(description='Process some integers.')
-	parser.add_argument('--input_dir', help='Input directory in data/ which contains three\
-											 images (left_image.jpg, reference_image.jpg,\
-											 and right_image.jpg) that is needed for \
-											 generating panorama.')
-	parser.add_argument("--warp", help="Do spherical warping if specified.", action="store_true")
+	parser = argparse.ArgumentParser(description='Automated Panorama with Warping')
+	parser.add_argument('--input_dir', 
+						help='Input directory in data/ which contains images\
+							  that is needed for generating panorama. The \
+							  filename of the images should be 1.jpg ~ N.jpg\
+							  if you want to use N images to generate panorama.\
+							  The order of the image should be from left to right\
+							  with sufficient overlap between two adjacent images.')
+
+	parser.add_argument("--warp", 
+						action="store_true",
+						help="Do spherical warping if specified. The FOCAL_LENGTH\
+							  parameter need to be changed with repect to your \
+							  camera setting in order to get the correct result of\
+							  warping.")
 
 	return parser.parse_args()
 
@@ -26,86 +35,65 @@ if __name__ == '__main__':
 		focal_length = FOCAL_LENGTH
 
 	image_datas = prepare_image_data(args.input_dir, focal_length=focal_length)
+	center_idx = int(len(image_datas['sequences']) / 2)
+	# center_idx = 0
+
+	print (len(image_datas['sequences']))
 	filename = create_path('results', image_datas['suffix'], filename='reference_warped.jpg')
-	save_image(image_datas['reference']['color'], filename)
+	save_image(image_datas['sequences'][center_idx]['color'], filename)
 
-	# Key point detection
-	x_left, y_left = harrisKeyPoint(image_datas['left']['gray'], alpha=ALPHA, n=N_KEYPOINTS)
-	x_ref, y_ref = harrisKeyPoint(image_datas['reference']['gray'], alpha=ALPHA, n=N_KEYPOINTS)
-	x_right, y_right = harrisKeyPoint(image_datas['right']['gray'], alpha=ALPHA, n=N_KEYPOINTS)
+	cur_H = np.eye(3)
+	X, Y, feats, Hs = [], [], [], [cur_H]
+	for i in range(len(image_datas['sequences'])):
+		# Key point detection
+		x, y = harrisKeyPoint(image_datas['sequences'][i]['gray'], alpha=ALPHA, n=N_KEYPOINTS)
+		X.append(x)
+		Y.append(y)
+		# SIFT feature extraction
+		features = SIFTDescriptor(image_datas['sequences'][i]['gray'], x, y, SIFT_SIZE)
+		feats.append(features)
+		if i != 0:
+			# SIFT feature matching with ratio test
+			matches = ratioTestMatching(features, feats[i - 1], x, y, X[i - 1], Y[i - 1], threshold=THRESHOLD)
+			
+			# Visualize corresondence without RANSAC
+			num_pts_to_visualize = len(matches)
+			vis = show_correspondence_lines(image_datas['sequences'][i - 1]['color'], 
+										  	image_datas['sequences'][i]['color'],
+										   	matches[:num_pts_to_visualize, 2],
+										   	matches[:num_pts_to_visualize, 3],
+			                    		   	matches[:num_pts_to_visualize, 0], 
+			                    		   	matches[:num_pts_to_visualize, 1])
 
-	# SIFT feature extraction
-	left_features = SIFTDescriptor(image_datas['left']['gray'], x_left, y_left, SIFT_SIZE)
-	ref_features = SIFTDescriptor(image_datas['reference']['gray'], x_ref, y_ref, SIFT_SIZE)
-	right_features = SIFTDescriptor(image_datas['right']['gray'], x_right, y_right, SIFT_SIZE)
+			filename = create_path('results', image_datas['suffix'], 'match_vis', filename='vis_lines_%d_%d.jpg' % (i - 1, i))
+			save_image(vis, filename)
 
-	# SIFT feature matching with ratio test
-	left_ref_matches = ratioTestMatching(left_features, ref_features, x_left, y_left, x_ref, y_ref, threshold=THRESHOLD)
-	right_ref_matches = ratioTestMatching(right_features, ref_features, x_right, y_right, x_ref, y_ref, threshold=THRESHOLD)
+			# RANSAC for best correspondences
+			best_H, inliers, choices = ransac(matches,
+											  e=ERROR_RATE, 
+											  s=SAMPLE_NUM, 
+											  p=CORRECT_PROP, 
+											  threshold=INLIERS_THRESHOLD,
+											  useHomo=USE_HOMO)
 
-	# print('%d matches from %d corners for reference and left images'.format(len(left_ref_matches), len(x_ref)))
-	# print('%d matches from %d corners for reference and right images'.format(len(right_ref_matches), len(x_ref)))
+			vis = show_correspondence_lines(image_datas['sequences'][i - 1]['color'], 
+										  	image_datas['sequences'][i]['color'],
+										   	choices[:, 2],
+										   	choices[:, 3],
+			                    		   	choices[:, 0], 
+			                    		   	choices[:, 1])
+			filename = create_path('results', image_datas['suffix'], 'RANSAC_vis', filename='vis_lines_%d_%d.jpg' % (i - 1, i))
+			save_image(vis, filename)
 
-	# Visualize corresondence without RANSAC
-	num_pts_to_visualize = len(left_ref_matches)
-	vis = show_correspondence_lines(image_datas['left']['color'], 
-								  	image_datas['reference']['color'],
-								   	left_ref_matches[:num_pts_to_visualize, 0],
-								   	left_ref_matches[:num_pts_to_visualize, 1],
-	                    		   	left_ref_matches[:num_pts_to_visualize, 2], 
-	                    		   	left_ref_matches[:num_pts_to_visualize, 3])
-
-	filename = create_path('results', image_datas['suffix'], filename='vis_lines_left_ref.jpg')
-	save_image(vis, filename)
-
-	num_pts_to_visualize = len(right_ref_matches)
-	vis = show_correspondence_lines(image_datas['reference']['color'], 
-								  	image_datas['right']['color'],
-								   	right_ref_matches[:num_pts_to_visualize, 2],
-								   	right_ref_matches[:num_pts_to_visualize, 3],
-	                    		   	right_ref_matches[:num_pts_to_visualize, 0], 
-	                    		   	right_ref_matches[:num_pts_to_visualize, 1])
-
-	filename = create_path('results', image_datas['suffix'], filename='vis_lines_ref_right.jpg')
-	save_image(vis, filename)
-
-	#RANSAC for best correspondences
-	left_best_H, left_inliers, left_choices = ransac(left_ref_matches,
-													 e=ERROR_RATE, 
-													 s=SAMPLE_NUM, 
-													 p=CORRECT_PROP, 
-													 threshold=INLIERS_THRESHOLD)
-
-	right_best_H, right_inliers, right_choices = ransac(right_ref_matches,
-													 e=ERROR_RATE, 
-													 s=SAMPLE_NUM, 
-													 p=CORRECT_PROP, 
-													 threshold=INLIERS_THRESHOLD)
-
-	# Visualize corresondence with RANSAC
-	vis = show_correspondence_lines(image_datas['left']['color'], 
-								  	image_datas['reference']['color'],
-								   	left_choices[:, 0],
-								   	left_choices[:, 1],
-	                    		   	left_choices[:, 2], 
-	                    		   	left_choices[:, 3])
-	filename = create_path('results', image_datas['suffix'], filename='vis_lines_ransac_left_ref.jpg')
-	save_image(vis, filename)
-
-	vis = show_correspondence_lines(image_datas['reference']['color'], 
-								  	image_datas['right']['color'],
-								   	right_choices[:, 2],
-								   	right_choices[:, 3],
-	                    		   	right_choices[:, 0], 
-	                    		   	right_choices[:, 1])
-	filename = create_path('results', image_datas['suffix'], filename='vis_lines_ransac_ref_right.jpg')
-	save_image(vis, filename)
+			cur_H = np.matmul(cur_H, best_H)
+			Hs.append(cur_H)
 
 	# Panorama stitching
-	Hs = {'left': left_best_H, 'right': right_best_H}
 	p = Panorama(image_datas, Hs)
+	p.adjust_H_to_center(center=center_idx)
 	stitched_image = p.stitch()
 
 	filename = create_path('results', image_datas['suffix'], filename='panorama_result.jpg')
 	save_image(stitched_image, filename)
+
 
