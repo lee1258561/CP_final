@@ -18,7 +18,7 @@ This will generate (or override) a panorama as will as intermediate results unde
 
 ## Use Your Own Image Set
 This repository provides three sample image set under `data/` (tech_green, ..., and ...) for demonstration. You should be able to generate the results by changing the `--input_dir` argument to the corresponding directory name.
-To use your own image set, create a new directory under `data/` and put your images inside this directory. The file name should be 1.jpg ~ N.jpg if you want to use N images to generate panorama. The order of the image should be from left to right with sufficient overlap between two adjacent images. You will also need to change the `FOCAL_LENGTH` variable in `src/config.py` using the following equation if you want to use spherical warping:
+To use your own image set, create a new directory under `data/` and put your images inside this directory. The file name should be `1.jpg ~ N.jpg` if you want to use N images to generate panorama. The order of the image should be from left to right with sufficient overlap between two adjacent images. You will also need to change the `FOCAL_LENGTH` variable in `src/config.py` using the following equation if you want to use spherical warping:
 ```
 FOCAL_LENGTH = camera focal length (mm) / camera sensor width (mm) * image width in pixel
 ``` 
@@ -26,7 +26,7 @@ After doing so, you should be able to generate your own panorama by the followin
 ```
 python generate.py --input_dir YOUR_INPUT_DIR [--warp]
 ```
-and the result will be under results/
+and the result will be under `results/`
 
-You are also willing to experiment with different parameter for Harris Corner Detector, SIFT Extraction & Matching, and RANSAC. All available parameters can be modified by changing the variable under `src/config.py`. After modifying and saving this file, you can run the same command above with your custom parameter.
+You are also welcome to experiment with different parameter for Harris Corner Detector, SIFT Extraction & Matching, and RANSAC. All available parameters can be modified by changing the variable under `src/config.py`. After modifying and saving this file, you can run the same command above with your custom parameter.
 

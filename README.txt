@@ -22,4 +22,4 @@ After doing so, you should be able to generate your own panorama by the followin
 	python generate.py --input_dir YOUR_INPUT_DIR [--warp]
 and the result will be under results/
 
-You are also willing to experiment with different parameter for Harris Corner Detector, SIFT Extraction & Matching, and RANSAC. All available parameters can be modified by changing the variable under `src/config.py`. After modifying and saving this file, you can run the same command above with your custom parameter.
+You are also welcome to experiment with different parameter for Harris Corner Detector, SIFT Extraction & Matching, and RANSAC. All available parameters can be modified by changing the variable under `src/config.py`. After modifying and saving this file, you can run the same command above with your custom parameter.
