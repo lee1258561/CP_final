@@ -1,9 +1,8 @@
 import cv2
 import numpy as np
+from src.config import *
 
-def harrisKeyPoint(image, feature_width, alpha=0.06, n=1500):
-    confidences, scales, orientations = None, None, None
-
+def harrisKeyPoint(image, alpha=0.06, n=1500):
     Ix = cv2.Sobel(image,-1,1,0,ksize=5)
     Iy = cv2.Sobel(image,-1,0,1,ksize=5)
 
@@ -23,7 +22,10 @@ def harrisKeyPoint(image, feature_width, alpha=0.06, n=1500):
 
     #thresholding and sort
     point_list = np.array(sorted(point_list, key=lambda x: x[2], reverse=True))
+    point_list = point_list[:NUM_CORNER_CONSIDERED,:]
 
+    if VERBOSE: 
+        print ('Start Searching top %d local maximums from %d points' % (n, NUM_CORNER_CONSIDERED))
     # Non-Maximum Suppression
     radius_list = []
     radius_list.append([point_list[0,0], point_list[0,1], float('inf'), 0])
@@ -37,8 +39,8 @@ def harrisKeyPoint(image, feature_width, alpha=0.06, n=1500):
     radius_list.sort(key=lambda x: x[2], reverse=True)
 
     radius_list = np.array(radius_list)[:n]
-    print ("last index: ", radius_list[-1, 3])
+
     x = radius_list[:, 0]
     y = radius_list[:, 1]
 
-    return x, y, confidences, scales, orientations
+    return x, y

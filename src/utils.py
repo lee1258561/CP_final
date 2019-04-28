@@ -1,20 +1,54 @@
+import matplotlib.pyplot as plt
 import numpy as np
 import os
 import cv2
+from src.warp import *
+from src.config import *
+
+def create_path(*arg, filename=None):
+    path = os.getcwd()
+    for directory in arg:
+        path = os.path.join(path, directory)
+        if not os.path.exists(path):
+            print('%s doesn\'t exist, creating...' % path)
+            os.mkdir(path)
+
+    if filename:
+        path = os.path.join(path, filename)
+    return path
+
+def save_image(image, filename):
+    plt.figure()
+    plt.imshow(image)
+    plt.savefig(filename, dpi=1000)
+    plt.clf()
 
 def normalize_image(image):
     return cv2.normalize(image.astype(np.float32), None, 0.0, 1.0, cv2.NORM_MINMAX)
 
-def prepare_image_data(file_dir, data_dir='data'):
+def prepare_image_data(file_dir, focal_length=None, data_dir='data'):
     image_datas = {'suffix': '_' + file_dir}
-
+    if VERBOSE and focal_length is not None: print ("Do warping after loading images.")
+    
     for img_pos in ['left', 'reference', 'right']:
+        image_datas[img_pos] = {}
         path = os.path.join(data_dir, file_dir, img_pos + '_image.jpg')
-        norm_img = normalize_image(cv2.imread(path))
-        image_datas[img_pos] = norm_img[:, :, ::-1]
-        image_datas[img_pos + '_gray'] = cv2.cvtColor(norm_img, cv2.COLOR_RGB2GRAY)
+        img = cv2.imread(path)
+        if focal_length is not None:
+            img, mask = warpSpherical(img, focal_length)
+            image_datas[img_pos]['mask'] = mask
+        norm_img = normalize_image(img)
+        image_datas[img_pos]['color'] = norm_img[:, :, ::-1]
+        image_datas[img_pos]['gray'] = cv2.cvtColor(norm_img, cv2.COLOR_RGB2GRAY)
 
     return image_datas
+
+def to_homo(coordinates):
+    return np.hstack((coordinates, np.ones((coordinates.shape[0], 1))))
+
+def from_homo(homo_coordinates):
+    return (homo_coordinates[:, 0:2].T / homo_coordinates[:, 2]).T
+
 
 def hstack_images(imgA, imgB):
     Height = max(imgA.shape[0], imgB.shape[0])

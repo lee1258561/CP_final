@@ -8,7 +8,7 @@ def warpLocal(src, uv):
     mask = cv2.inRange(uv[:,:,1],0,height-1.0) & cv2.inRange(uv[:,:,0],0,width-1.0)
     warped = cv2.remap(src, uv[:, :, 0].astype(np.float32), uv[:, :, 1].astype(np.float32), cv2.INTER_LINEAR, borderMode=cv2.BORDER_REPLICATE)
     image = cv2.bitwise_and(warped, warped, mask = mask)
-    return image
+    return image, mask
 
 def computeSphericalWarpMappings(shape, f, k1, k2):
     

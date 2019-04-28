@@ -1,11 +1,7 @@
 import cv2
 import numpy as np
-
-def to_homo(coordinates):
-    return np.hstack((coordinates, np.ones((coordinates.shape[0], 1))))
-
-def from_homo(homo_coordinates):
-    return (homo_coordinates[:, 0:2].T / homo_coordinates[:, 2]).T
+from src.utils import * 
+from src.config import *
 
 def ransac(matches, e=0.9, s=4, p=0.99, threshold=1.5):
 
@@ -17,7 +13,8 @@ def ransac(matches, e=0.9, s=4, p=0.99, threshold=1.5):
     homo_target = to_homo(target)
 
     best_H, best_match_index, best_choice_index = None, np.array([]), np.array([])
-    print(iter_N)
+
+    if VERBOSE: print("Start RANSAC with %d iteration" % iter_N)
     for i in range(iter_N):
         choice = np.random.choice(match_N, size=s, replace=False)
         random_matches = np.take(matches, choice, axis=0).astype(np.float32)
@@ -32,7 +29,7 @@ def ransac(matches, e=0.9, s=4, p=0.99, threshold=1.5):
 
         #print (agree_match_index.shape[0])
         if agree_match_index.shape[0] > best_match_index.shape[0]:
-            print (agree_match_index.shape[0])
+            if VERBOSE: print ("New best model found. Number of inliers: %d" % agree_match_index.shape[0])
             best_H = H
             best_choice_index = choice
             best_match_index = agree_match_index

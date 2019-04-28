@@ -4,6 +4,8 @@ import math
 
 from scipy.spatial.distance import cdist
 
+from src.config import *
+
 def SIFTDescriptor(image, x, y, feature_width, scales=None):
     blur = cv2.GaussianBlur(image, (5, 5), 1, 1)
     blur = (blur - np.mean(blur)) / np.std(blur)
@@ -54,17 +56,17 @@ def SIFTDescriptor(image, x, y, feature_width, scales=None):
 
     fv = np.array(fv)
 
+    if VERBOSE: print ("Done extracting SIFT descriptor for %d keypoints" % len(x))
     return fv
 
 
-def ratioTestMatching(features1, features2, x1, y1, x2, y2):
+def ratioTestMatching(features1, features2, x1, y1, x2, y2, threshold=0.8):
 
     dist_mat = cdist(features1, features2)
     sort_idx_mat = np.argsort(dist_mat, axis=0)
     images2_NN_idx = sort_idx_mat[0,:]
     sort_mat = np.sort(dist_mat, axis=0)
 
-    threshold = 0.8
     confidence = sort_mat[0] / sort_mat[1]
     match_idx = np.argsort(confidence)
 
@@ -74,6 +76,7 @@ def ratioTestMatching(features1, features2, x1, y1, x2, y2):
             idx1, idx2 = images2_NN_idx[image2_idx], image2_idx
             matches.append([x1[idx1], y1[idx1], x2[idx2], y2[idx2], 1 / confidence[idx2]])
 
+    if VERBOSE: print('Found %d matches from %d corners' % (len(matches), len(x1)))
     return np.array(matches)
 
 
