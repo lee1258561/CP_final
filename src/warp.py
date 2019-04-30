@@ -18,10 +18,6 @@ def computeSphericalWarpMappings(shape, f, k1, k2):
     mat[2] = np.cos(0.0) * np.cos(0.0)
     y_min = mat[1] # get min y value
 
-    # calculate spherical coordinates
-    # (x,y) is the spherical image coordinates.
-    # (theta,phi) is the spherical coordinates, e.g., theta is the angle theta
-    # and phi is the angle phi
     one = np.ones((shape[0], shape[1]))
     theta = one * np.arange(shape[1])
     phi = one.T * np.arange(shape[0])
@@ -30,7 +26,6 @@ def computeSphericalWarpMappings(shape, f, k1, k2):
     theta = ((theta - 0.5 * shape[1]) / f)
     phi = ((phi - 0.5 * shape[0]) / f - y_min)
 
-    # projection on the sphere
     x = np.sin(theta) * np.cos(phi)
     y = np.sin(phi)
     z = np.cos(theta) * np.cos(phi)
@@ -53,11 +48,6 @@ def computeSphericalWarpMappings(shape, f, k1, k2):
     return uv
 
 def warpSpherical(image, f):
-    #     image:filename(string)
-    #     f:focal length in pixel as int
-    #     output image in a numpy array with values from 0 to 255. 
-    #     The dimensions are (rows, cols, color bands BGR).
-
     # compute spherical warp by computing the mapping from source to dest image 
     k1 = -0.21
     k2 = 0.26
