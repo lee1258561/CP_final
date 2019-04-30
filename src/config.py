@@ -3,7 +3,7 @@ VERBOSE = True
 # Camera Focal Length Parameter
 # Use the following expression to calcuate focal length in pixel unit
 # 		FOCAL_LENGTH = camera focal length (mm) / camera sensor width (mm) * image width in pixel	
-FOCAL_LENGTH = 20.0 / 23.5 * 750 
+FOCAL_LENGTH = 48.0 / 36.0 * 600
 
 # Harris Corner Detector Parameter
 ALPHA = 0.06
